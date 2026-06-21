@@ -35,7 +35,10 @@ def event(event_id):
 
     event = get_event(event_id)
 
-    return render_template("event.html", event=event)
+    return render_template(
+        "event.html",
+          event=event
+    )
 
 
 @app.route("/upcoming")
@@ -49,6 +52,13 @@ def upcoming():
     )
 
 
-if __name__ == "__main__":
+import os
 
-    app.run(debug=True)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+
+    app.run(
+        host="0.0.0.0",
+        port=port,
+        debug=False
+    )

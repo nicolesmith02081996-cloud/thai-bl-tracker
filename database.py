@@ -116,6 +116,22 @@ def get_events():
 
     return events
 
+def get_event(event_id):
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT * FROM events WHERE id = ?",
+        (event_id,)
+    )
+
+    event = cursor.fetchone()
+
+    conn.close()
+
+    return event
+
 
 def search_events(query):
 
