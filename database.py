@@ -5,7 +5,8 @@ import psycopg2
 def get_connection():
 
     return psycopg2.connect(
-        os.environ["DATABASE_URL"]
+        os.environ["DATABASE_URL"],
+        sslmode="require"
     )
 
 
@@ -71,6 +72,11 @@ def save_event(data):
     conn = get_connection()
     cursor = conn.cursor()
 
+    actors = data.get("actors", [])
+
+    if isinstance(actors, list):
+        actors = ", ".join(actors)
+
     cursor.execute("""
     INSERT INTO events (
         source,
@@ -83,12 +89,11 @@ def save_event(data):
         url,
         embedding
 
-    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
     """, (
-
         data.get("source", ""),
         data.get("company", ""),
-        ", ".join(data.get("actors", [])),
+        actors,
         data.get("date", ""),
         data.get("location", ""),
         str(data.get("ticket_sale", False)),
@@ -161,7 +166,7 @@ def get_upcoming_events():
 
     cursor.execute("""
     SELECT * FROM events
-    WHERE event_date >= date('now')
+    WHERE event_date >= CURRENT_DATE
     ORDER BY event_date ASC
     """)
 
