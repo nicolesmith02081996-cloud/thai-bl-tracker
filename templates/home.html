@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Thailand BL Event Tracker</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f6f6f6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .top-bar {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            padding: 8px;
+            width: 250px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            padding: 8px 12px;
+            border: none;
+            background: #333;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .links {
+            margin-top: 10px;
+        }
+
+        .links a {
+            margin: 0 10px;
+            text-decoration: none;
+            color: #007BFF;
+        }
+
+        .event-card {
+            background: white;
+            padding: 15px;
+            margin: 10px auto;
+            max-width: 700px;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .event-card h2 {
+            margin: 0 0 10px 0;
+        }
+
+        .meta {
+            color: #555;
+            font-size: 14px;
+            margin: 4px 0;
+        }
+
+        .view-btn {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 6px 10px;
+            background: #007BFF;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+        }
+
+        .empty {
+            text-align: center;
+            color: gray;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>🌸 Thailand BL Event Tracker</h1>
+
+<div class="top-bar">
+
+    <form method="GET" action="/">
+        <input type="text" name="q" placeholder="Search actor, event, or location..." value="{{ query or '' }}">
+        <button type="submit">Search</button>
+    </form>
+
+    <div class="links">
+        <a href="/">🏠 Home</a>
+        <a href="/upcoming">📅 Upcoming Events</a>
+    </div>
+
+</div>
+
+<hr>
+
+{% if events and events|length > 0 %}
+
+    {% for event in events %}
+
+        <div class="event-card">
+
+            <!-- Title -->
+            <h2>{{ event[7] }}</h2>
+
+            <!-- Actors -->
+            <div class="meta">
+                <b>Actors:</b> {{ event[3] }}
+            </div>
+
+            <!-- Date -->
+            <div class="meta">
+                <b>Date:</b> {{ event[4] }}
+            </div>
+
+            <!-- Location -->
+            <div class="meta">
+                <b>Location:</b> {{ event[5] }}
+            </div>
+
+            <!-- Summary -->
+            <div class="meta">
+                {{ event[6] }}
+            </div>
+
+            <!-- Link -->
+            <a class="view-btn" href="/event/{{ event[0] }}">
+                View Details
+            </a>
+
+        </div>
+
+    {% endfor %}
+
+{% else %}
+
+    <div class="empty">
+        No events found. Run the tracker first:
+        <br><br>
+        <code>python run_tracker.py</code>
+    </div>
+
+{% endif %}
+
+</body>
+</html>
