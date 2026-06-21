@@ -1,10 +1,12 @@
-import sqlite3
-
-DB_NAME = "events.db"
+import os
+import psycopg2
 
 
 def get_connection():
-    return sqlite3.connect(DB_NAME)
+
+    return psycopg2.connect(
+        os.environ["DATABASE_URL"]
+    )
 
 
 def create_table():
@@ -15,13 +17,13 @@ def create_table():
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS events (
 
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         
         source TEXT,
         company TEXT,
         actors TEXT,
        
-         event_date TEXT,
+        event_date TEXT,
         location TEXT,
         
         ticket_sale TEXT,
@@ -81,7 +83,7 @@ def save_event(data):
         url,
         embedding
 
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     """, (
 
         data.get("source", ""),
@@ -122,7 +124,7 @@ def get_event(event_id):
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT * FROM events WHERE id = ?",
+        "SELECT * FROM events WHERE id = %s",
         (event_id,)
     )
 
@@ -140,9 +142,9 @@ def search_events(query):
 
     cursor.execute("""
     SELECT * FROM events
-    WHERE actors LIKE ?
-    OR summary LIKE ?
-    OR location LIKE ?
+    WHERE actors LIKE %s
+    OR summary LIKE %s
+    OR location LIKE %s
     ORDER BY event_date ASC
     """, (f"%{query}%", f"%{query}%", f"%{query}%"))
 
