@@ -1,48 +1,24 @@
-from apscheduler.schedulers.background import BackgroundScheduler
-import subprocess
-import sys
 import time
-
-scheduler = BackgroundScheduler()
-
-
-def run_tracker_job():
-
-    print("🚀 Running tracker job...")
-
-    try:
-        result = subprocess.run(
-            [sys.executable, "run_tracker.py"],
-            capture_output=True,
-            text=True
-        )
-
-        print("STDOUT:\n", result.stdout)
-        print("STDERR:\n", result.stderr)
-
-        if result.returncode != 0:
-            print("❌ Tracker failed with error code:", result.returncode)
-
-    except Exception as e:
-        print("❌ Exception running tracker:", e)
+from run_tracker import run_tracker
 
 
-# 🔥 Run once at startup
-run_tracker_job()
+def start_worker():
 
-# ⏰ Schedule every 3 hours
-scheduler.add_job(
-    run_tracker_job,
-    "interval",
-    hours=3,
-    max_instances=1,   # prevents overlap
-    coalesce=True      # merges missed runs
-)
+    print("🚀 WORKER STARTED (Level 5)")
 
-scheduler.start()
+    while True:
 
-print("✅ Scheduler started")
+        try:
+            run_tracker()
 
-# 🧠 Keep process alive (important for Railway)
-while True:
-    time.sleep(60)
+            print("⏳ Sleeping 3 hours...\n")
+            time.sleep(60 * 60 * 3)
+
+        except Exception as e:
+
+            print("❌ Worker error:", e)
+            time.sleep(60)  # retry after 1 min
+
+
+if __name__ == "__main__":
+    start_worker()

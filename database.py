@@ -2,24 +2,24 @@ import os
 from sqlalchemy import create_engine, Column, Integer, String, Text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-# 🔗 Railway PostgreSQL URL
+# -------------------------------------------------
+# DATABASE SETUP
+# -------------------------------------------------
 DATABASE_URL = os.environ["DATABASE_URL"]
 
-# Engine
-engine = create_engine(DATABASE_URL, echo=False)
-
-# Base model
-Base = declarative_base()
-
-# Session
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine)
 
+Base = declarative_base()
 
-# 📦 EVENTS TABLE
+
+# -------------------------------------------------
+# TABLE MODEL
+# -------------------------------------------------
 class Event(Base):
     __tablename__ = "events"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
 
     source = Column(Text)
     company = Column(Text)
@@ -35,128 +35,89 @@ class Event(Base):
     embedding = Column(Text)
 
 
-# 🔧 CREATE TABLES
+# -------------------------------------------------
+# INIT DB
+# -------------------------------------------------
 def create_table():
     Base.metadata.create_all(bind=engine)
 
 
-# 💾 SAVE EVENT
+# -------------------------------------------------
+# SAVE EVENT
+# -------------------------------------------------
 def save_event(data):
+
     session = SessionLocal()
 
-    actors = data.get("actors", [])
-    if isinstance(actors, list):
-        actors = ", ".join(actors)
+    try:
+        event = Event(
+            source=data.get("source", ""),
+            company=data.get("company", ""),
+            actors=", ".join(data.get("actors", []))
+            if isinstance(data.get("actors"), list)
+            else data.get("actors", ""),
 
-    event = Event(
-        source=data.get("source", ""),
-        company=data.get("company", ""),
-        actors=actors,
-        event_date=data.get("date", ""),
-        location=data.get("location", ""),
-        ticket_sale=str(data.get("ticket_sale", False)),
-        summary=data.get("summary", ""),
-        url=data.get("url", ""),
-        embedding=data.get("embedding", "")
-    )
+            event_date=data.get("date", ""),
+            location=data.get("location", ""),
 
-    session.add(event)
-    session.commit()
-    session.close()
+            ticket_sale=str(data.get("ticket_sale", False)),
+            summary=data.get("summary", ""),
+
+            url=data.get("url", ""),
+            embedding=data.get("embedding", "")
+        )
+
+        session.add(event)
+        session.commit()
+
+    except Exception as e:
+        session.rollback()
+        print("❌ DB Error:", e)
+
+    finally:
+        session.close()
 
 
-# 📊 GET ALL EVENTS
+# -------------------------------------------------
+# GET EVENTS
+# -------------------------------------------------
 def get_events():
+
     session = SessionLocal()
     events = session.query(Event).order_by(Event.event_date.asc()).all()
     session.close()
+
     return events
 
 
-# 🔍 GET SINGLE EVENT
+# -------------------------------------------------
+# GET SINGLE EVENT
+# -------------------------------------------------
 def get_event(event_id):
+
     session = SessionLocal()
     event = session.query(Event).filter(Event.id == event_id).first()
     session.close()
+
     return event
 
 
-# 🔎 SEARCH EVENTS
-def search_events(query):
-    session = SessionLocal()
-
-    results = session.query(Event).filter(
-        Event.actors.like(f"%{query}%") |
-        Event.summary.like(f"%{query}%") |
-        Event.location.like(f"%{query}%")
-    ).order_by(Event.event_date.asc()).all()
-
-    session.close()
-    return results
-
-def event_exists_by_url(url):
-    session = SessionLocal()
-
-    exists = session.query(Event.id).filter(Event.url == url).first()
-
-    session.close()
-    return exists is not None
-
-from embeddings import cosine_similarity
-import json
-import numpy as np
-
-def is_duplicate(new_embedding, threshold=0.85):
+# -------------------------------------------------
+# DUPLICATE CHECK (simple embedding match placeholder)
+# -------------------------------------------------
+def is_duplicate(new_embedding):
 
     if not new_embedding:
         return False
 
-    # -------------------------
-    # normalize new embedding
-    # -------------------------
-    try:
-        if isinstance(new_embedding, str):
-            new_embedding = json.loads(new_embedding)
-
-        new_embedding = np.array(new_embedding, dtype=float)
-    except:
-        return False
-
     session = SessionLocal()
 
-    events = session.query(Event.embedding).filter(Event.embedding.isnot(None)).all()
+    existing = session.query(Event.embedding).filter(Event.embedding.isnot(None)).all()
 
     session.close()
 
-    for (emb,) in events:
-
-        try:
-            if not emb:
-                continue
-
-            if isinstance(emb, str):
-                emb = json.loads(emb)
-
-            emb = np.array(emb, dtype=float)
-
-            score = cosine_similarity(new_embedding, emb)
-
-            if score >= threshold:
-                return True
-
-        except:
-            continue
+    for (emb,) in existing:
+        if emb and emb == new_embedding:
+            return True
 
     return False
-
-# ⏳ UPCOMING EVENTS
-def get_upcoming_events():
-    session = SessionLocal()
-
-    events = session.query(Event)\
-        .filter(Event.event_date >= "2026-01-01")\
-        .order_by(Event.event_date.asc())\
-        .all()
-
-    session.close()
-    return events

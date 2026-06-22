@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Upcoming Events | Thailand BL Tracker</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f6f6f6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .top-link {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .top-link a {
+            text-decoration: none;
+            color: #007BFF;
+        }
+
+        .event-card {
+            background: white;
+            padding: 15px;
+            margin: 15px auto;
+            max-width: 750px;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .event-card h2 {
+            margin: 0 0 10px 0;
+        }
+
+        .meta {
+            color: #555;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 5px;
+            font-size: 12px;
+            background: #007BFF;
+            color: white;
+        }
+
+        .badge-soon {
+            background: #ff9800;
+        }
+
+        .badge-today {
+            background: #e91e63;
+        }
+
+        .badge-past {
+            background: #999;
+        }
+
+        .empty {
+            text-align: center;
+            color: gray;
+            margin-top: 40px;
+        }
+
+        a.button {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 6px 10px;
+            background: #007BFF;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>📅 Upcoming BL Events</h1>
+
+<div class="top-link">
+    <a href="/">⬅ Back to Home</a>
+</div>
+
+<hr>
+
+{% if events and events|length > 0 %}
+
+    {% for event in events %}
+
+        <div class="event-card">
+
+            <!-- TITLE -->
+            <h2>{{ event.company }}</h2>
+
+            <!-- DATE -->
+            <div class="meta">
+                📆 Date: {{ event.event_date }}
+            </div>
+
+            <!-- LOCATION -->
+            <div class="meta">
+                📍 Location: {{ event.location }}
+            </div>
+
+            <!-- ACTORS -->
+            <div class="meta">
+                🎭 Actors: {{ event.actors }}
+            </div>
+
+            <!-- SUMMARY -->
+            <div class="meta">
+                {{ event.summary[:200] }}...
+            </div>
+
+            <!-- COUNTDOWN -->
+            <div class="meta">
+
+                {% set days = days_until(event.event_date) %}
+
+                {% if days is not none %}
+
+                    {% if days < 0 %}
+                        <span class="badge badge-past">Past Event</span>
+
+                    {% elif days == 0 %}
+                        <span class="badge badge-today">Today</span>
+
+                    {% elif days <= 7 %}
+                        <span class="badge badge-soon">🔥 {{ days }} days left</span>
+
+                    {% else %}
+                        <span class="badge">⏳ {{ days }} days left</span>
+
+                    {% endif %}
+
+                {% else %}
+                    <span class="badge">Date TBA</span>
+                {% endif %}
+
+            </div>
+
+            <!-- DETAILS BUTTON -->
+            <a class="button" href="/event/{{ event.id }}">
+                View Details
+            </a>
+
+        </div>
+
+    {% endfor %}
+
+{% else %}
+
+    <div class="empty">
+        No upcoming events found.
+    </div>
+
+{% endif %}
+
+</body>
+</html>
