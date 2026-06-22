@@ -1,177 +1,108 @@
 import os
-import psycopg2
+from sqlalchemy import create_engine, Column, Integer, String, Text
+from sqlalchemy.orm import declarative_base, sessionmaker
+
+# 🔗 Railway PostgreSQL URL
+DATABASE_URL = os.environ["DATABASE_URL"]
+
+# Engine
+engine = create_engine(DATABASE_URL, echo=False)
+
+# Base model
+Base = declarative_base()
+
+# Session
+SessionLocal = sessionmaker(bind=engine)
 
 
-def get_connection():
+# 📦 EVENTS TABLE
+class Event(Base):
+    __tablename__ = "events"
 
-    return psycopg2.connect(
-        os.environ["DATABASE_URL"],
-        sslmode="require"
-    )
+    id = Column(Integer, primary_key=True)
+
+    source = Column(Text)
+    company = Column(Text)
+    actors = Column(Text)
+
+    event_date = Column(Text)
+    location = Column(Text)
+
+    ticket_sale = Column(Text)
+    summary = Column(Text)
+
+    url = Column(Text)
+    embedding = Column(Text)
 
 
+# 🔧 CREATE TABLES
 def create_table():
-
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS events (
-
-        id SERIAL PRIMARY KEY,
-        
-        source TEXT,
-        company TEXT,
-        actors TEXT,
-       
-        event_date TEXT,
-        location TEXT,
-        
-        ticket_sale TEXT,
-        summary TEXT,
-        
-        url TEXT,
-        embedding TEXT
-    )
-    """)
-
-    conn.commit()
-    conn.close()
+    Base.metadata.create_all(bind=engine)
 
 
-from embeddings import get_embedding, cosine_similarity
-
-
-def is_duplicate(new_embedding, threshold=0.85):
-
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT embedding FROM events WHERE embedding IS NOT NULL")
-
-    existing = cursor.fetchall()
-
-    conn.close()
-
-    for (emb,) in existing:
-
-        try:
-            score = cosine_similarity(new_embedding, emb)
-
-            if score >= threshold:
-                return True
-
-        except:
-            continue
-
-    return False
-
-
+# 💾 SAVE EVENT
 def save_event(data):
-
-    conn = get_connection()
-    cursor = conn.cursor()
+    session = SessionLocal()
 
     actors = data.get("actors", [])
-
     if isinstance(actors, list):
         actors = ", ".join(actors)
 
-    cursor.execute("""
-    INSERT INTO events (
-        source,
-        company,
-        actors,
-        event_date,
-        location,
-        ticket_sale,
-        summary,
-        url,
-        embedding
-
-    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """, (
-        data.get("source", ""),
-        data.get("company", ""),
-        actors,
-        data.get("date", ""),
-        data.get("location", ""),
-        str(data.get("ticket_sale", False)),
-        data.get("summary", ""),
-        data.get("url", ""),
-        data.get("embedding", "")
-
-    ))
-
-    conn.commit()
-    conn.close()
-
-
-def get_events():
-
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    SELECT * FROM events
-    ORDER BY event_date ASC
-    """)
-
-    events = cursor.fetchall()
-
-    conn.close()
-
-    return events
-
-def get_event(event_id):
-
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute(
-        "SELECT * FROM events WHERE id = %s",
-        (event_id,)
+    event = Event(
+        source=data.get("source", ""),
+        company=data.get("company", ""),
+        actors=actors,
+        event_date=data.get("date", ""),
+        location=data.get("location", ""),
+        ticket_sale=str(data.get("ticket_sale", False)),
+        summary=data.get("summary", ""),
+        url=data.get("url", ""),
+        embedding=data.get("embedding", "")
     )
 
-    event = cursor.fetchone()
+    session.add(event)
+    session.commit()
+    session.close()
 
-    conn.close()
 
+# 📊 GET ALL EVENTS
+def get_events():
+    session = SessionLocal()
+    events = session.query(Event).order_by(Event.event_date.asc()).all()
+    session.close()
+    return events
+
+
+# 🔍 GET SINGLE EVENT
+def get_event(event_id):
+    session = SessionLocal()
+    event = session.query(Event).filter(Event.id == event_id).first()
+    session.close()
     return event
 
 
+# 🔎 SEARCH EVENTS
 def search_events(query):
+    session = SessionLocal()
 
-    conn = get_connection()
-    cursor = conn.cursor()
+    results = session.query(Event).filter(
+        Event.actors.like(f"%{query}%") |
+        Event.summary.like(f"%{query}%") |
+        Event.location.like(f"%{query}%")
+    ).order_by(Event.event_date.asc()).all()
 
-    cursor.execute("""
-    SELECT * FROM events
-    WHERE actors LIKE %s
-    OR summary LIKE %s
-    OR location LIKE %s
-    ORDER BY event_date ASC
-    """, (f"%{query}%", f"%{query}%", f"%{query}%"))
-
-    results = cursor.fetchall()
-
-    conn.close()
-
+    session.close()
     return results
 
+
+# ⏳ UPCOMING EVENTS
 def get_upcoming_events():
+    session = SessionLocal()
 
-    conn = get_connection()
-    cursor = conn.cursor()
+    events = session.query(Event)\
+        .filter(Event.event_date >= "2026-01-01")\
+        .order_by(Event.event_date.asc())\
+        .all()
 
-    cursor.execute("""
-    SELECT * FROM events
-    WHERE event_date >= CURRENT_DATE
-    ORDER BY event_date ASC
-    """)
-
-    events = cursor.fetchall()
-
-    conn.close()
-
+    session.close()
     return events
