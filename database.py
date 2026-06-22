@@ -94,6 +94,60 @@ def search_events(query):
     session.close()
     return results
 
+def event_exists_by_url(url):
+    session = SessionLocal()
+
+    exists = session.query(Event.id).filter(Event.url == url).first()
+
+    session.close()
+    return exists is not None
+
+from embeddings import cosine_similarity
+import json
+import numpy as np
+
+def is_duplicate(new_embedding, threshold=0.85):
+
+    if not new_embedding:
+        return False
+
+    # -------------------------
+    # normalize new embedding
+    # -------------------------
+    try:
+        if isinstance(new_embedding, str):
+            new_embedding = json.loads(new_embedding)
+
+        new_embedding = np.array(new_embedding, dtype=float)
+    except:
+        return False
+
+    session = SessionLocal()
+
+    events = session.query(Event.embedding).filter(Event.embedding.isnot(None)).all()
+
+    session.close()
+
+    for (emb,) in events:
+
+        try:
+            if not emb:
+                continue
+
+            if isinstance(emb, str):
+                emb = json.loads(emb)
+
+            emb = np.array(emb, dtype=float)
+
+            score = cosine_similarity(new_embedding, emb)
+
+            if score >= threshold:
+                return True
+
+        except:
+            continue
+
+    return False
 
 # ⏳ UPCOMING EVENTS
 def get_upcoming_events():

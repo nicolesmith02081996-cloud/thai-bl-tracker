@@ -92,7 +92,7 @@
 <div class="top-bar">
 
     <form method="GET" action="/">
-        <input type="text" name="q" placeholder="Search actor, event, or location..." value="{{ query or '' }}">
+        <input type="text" name="query" placeholder="Search actor, event, or location..." value="{{ query or '' }}">
         <button type="submit">Search</button>
     </form>
 
@@ -112,30 +112,30 @@
         <div class="event-card">
 
             <!-- Title -->
-            <h2>{{ event[7] }}</h2>
+            <h2>{{ event.company }}</h2>
 
             <!-- Actors -->
             <div class="meta">
-                <b>Actors:</b> {{ event[3] }}
+                <b>Actors:</b> {{ event.actors }}
             </div>
 
             <!-- Date -->
             <div class="meta">
-                <b>Date:</b> {{ event[4] }}
+                <b>Date:</b> {{ event.event_date }}
             </div>
 
             <!-- Location -->
             <div class="meta">
-                <b>Location:</b> {{ event[5] }}
+                <b>Location:</b> {{ event.location }}
             </div>
 
             <!-- Summary -->
             <div class="meta">
-                {{ event[6] }}
+                {{ event.summary }}
             </div>
 
             <!-- Link -->
-            <a class="view-btn" href="/event/{{ event[0] }}">
+            <a class="view-btn" href="/event/{{ event.id }}">
                 View Details
             </a>
 
